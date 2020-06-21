@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  # S3 Bucket to store HTML files
+  BucketWebsite:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+
+  # S3 Bucket to export JSON files
+  BucketExport:
+    Type: AWS::S3::Bucket
+
+  # Lambda Function to handle POST request
+  FunctionSubmit:
+    Type: AWS::Serverless::Function
+    Properties:
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /submit
+            Method: ANY
+      Handler: submit.handler
+      CodeUri: lambda
+      Runtime: nodejs12.x
+      Tracing: Active
+      Timeout: 6
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref TableSubmission
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableSubmission
+
+  # Lambda Function to export DynamoDB items to S3
+  FunctionExport:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: export.handler
+      CodeUri: lambda
+      Runtime: nodejs12.x
+      Tracing: Active
+      Timeout: 6
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref BucketExport
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketExport
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt TableSubmission.StreamArn
+            BatchSize: 100
+            StartingPosition: TRIM_HORIZON
+
+  # DynamoDB Table to storage form submissions
+  TableSubmission:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+Outputs:
+  WebsiteBucketName:
+    Value: !Ref BucketWebsite
+  WebsiteURL:
+    Value: !GetAtt BucketWebsite.WebsiteURL
