@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "serve website"
+  },
   "devDependencies": {
     "serve": "^11.3.2"
   }

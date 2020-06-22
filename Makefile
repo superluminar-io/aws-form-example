@@ -1,3 +1,6 @@
+start:
+	yarn start
+
 deploy:
 	sam deploy
 
