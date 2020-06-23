@@ -14,6 +14,6 @@ upload: build
 
 get-bucket:
 	@aws cloudformation describe-stacks \
-		--stack-name "sam-app-3" \
+		--stack-name "sam-app" \
 		--query 'Stacks[].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
 		--output text
