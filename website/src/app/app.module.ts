@@ -6,9 +6,9 @@ import { AmplifyUIAngularModule } from '@aws-amplify/ui-angular';
 import { AppComponent } from './app.component';
 
 Auth.configure({
-  userPoolId: 'eu-west-1_YSQ55DWb6',
-  userPoolWebClientId: '6qg0r9k4l78tvqdcb3mv0t3mdu',
-  region: 'eu-west-1',
+  userPoolId: 'eu-central-1_MxmHXkpGJ',
+  userPoolWebClientId: '2p8mhm24u21ou5g7n9sejddmoh',
+  region: 'eu-central-1',
 });
 
 @NgModule({
