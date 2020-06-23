@@ -37,6 +37,28 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableSubmission
 
+  FunctionScore:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: score.handler
+      CodeUri: lambda
+      Runtime: nodejs12.x
+      Tracing: Active
+      Timeout: 6
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref TableSubmission
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableSubmission
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt TableSubmission.StreamArn
+            BatchSize: 1
+            StartingPosition: LATEST
+
   # Lambda Function to export DynamoDB items to S3
   FunctionExport:
     Type: AWS::Serverless::Function
