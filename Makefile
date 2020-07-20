@@ -1,8 +1,19 @@
+export AWS_REGION=eu-central-1
+
 start:
-	yarn start
+	yarn --cwd website start 
+
+build:
+	yarn --cwd website build
 
 deploy:
 	sam deploy
 
-upload:
-	aws s3 sync ./website s3://$(BUCKET_NAME) --acl public-read
+upload: build
+	aws s3 sync ./website/dist/website s3://$(shell make get-bucket) --acl public-read
+
+get-bucket:
+	@aws cloudformation describe-stacks \
+		--stack-name "sam-app" \
+		--query 'Stacks[].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
+		--output text

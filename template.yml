@@ -37,6 +37,28 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableSubmission
 
+  FunctionScore:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: score.handler
+      CodeUri: lambda
+      Runtime: nodejs12.x
+      Tracing: Active
+      Timeout: 6
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref TableSubmission
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableSubmission
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt TableSubmission.StreamArn
+            BatchSize: 1
+            StartingPosition: LATEST
+
   # Lambda Function to export DynamoDB items to S3
   FunctionExport:
     Type: AWS::Serverless::Function
@@ -76,8 +98,60 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
+  SNSRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "cognito-idp.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "CognitoSNSPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "sns:publish"
+                Resource: "*"
+
+  UserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      AutoVerifiedAttributes:
+        - phone_number
+      SmsConfiguration:
+        SnsCallerArn: !GetAtt SNSRole.Arn
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+        - Name: phone_number
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+
+  UserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+
 Outputs:
   WebsiteBucketName:
     Value: !Ref BucketWebsite
   WebsiteURL:
     Value: !GetAtt BucketWebsite.WebsiteURL
+  UserPoolId:
+    Value: !Ref UserPool
+    Export:
+      Name: "UserPool::Id"
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+    Export:
+      Name: "UserPoolClient::Id"
